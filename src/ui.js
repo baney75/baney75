@@ -1,0 +1,129 @@
+/* LEGION • touch-sized DOM interface, campaign persistence, and original synthesized sound. */
+'use strict';
+(function(L){
+ const paths={
+  crown:'<path d="m3 7 4 4 5-7 5 7 4-4-2 12H5L3 7Z"/><path d="M6 16h12M8 22h8"/>',
+  shield:'<path d="M4 4 12 2l8 2v9c0 5-8 9-8 9s-8-4-8-9V4Z"/><path d="m8 11 4 5 4-5M12 7v9"/>',
+  horse:'<path d="M5 21v-7l5-6 1-5 4 2 5 7-4 2-3-3-1 5 4 5H5Z"/><path d="m11 3-4 3-3 7M14 8h.1"/>',
+  bow:'<path d="M5 3c18 4 18 14 0 18L15 12 5 3Z"/><path d="M3 12h18m-4-4 4 4-4 4"/>',
+  arrows:'<path d="m5 3 14 18M3 8l2-5 5 1M11 3l10 13M10 8l1-5 5 1M3 14l5 7m-6-2 1-5 5 1M15 18l4 3-1-5"/>',
+  horn:'<path d="m3 10 13-5v14L3 14v-4Zm13-5 4-2v18l-4-2M6 15v3c0 3 5 3 5 0v-1"/>',
+  flag:'<path d="M6 22V3m0 0c5-4 7 4 15 0v12c-8 4-10-4-15 0M3 22h6"/>',
+  swords:'<path d="m4 3 5 2 10 14m-5 1 6-6m-4 5 3 3M20 3l-5 2L5 19m5 1-6-6m4 5-3 3"/>',
+  map:'<path d="m2 5 7-3 6 3 7-3v17l-7 3-6-3-7 3V5Zm7-3v17m6-14v17"/><path d="m5 10 2 2 5-3 6 5"/>',
+  arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',
+  close:'<path d="m6 6 12 12M6 18 18 6"/>',
+  pause:'<path d="M8 5v14M16 5v14" stroke-width="3"/>',
+  play:'<path d="m7 4 13 8-13 8V4Z"/>',
+  sound:'<path d="M4 9h4l5-5v16l-5-5H4V9Zm12-2c4 2 4 8 0 10m3-13c6 4 6 12 0 16"/>',
+  mute:'<path d="M4 9h4l5-5v16l-5-5H4V9Zm12 0 6 6m-6 0 6-6"/>',
+  settings:'<path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3H9Z"/><circle cx="12" cy="12" r="3"/>',
+  hand:'<path d="M8 13V5a2 2 0 0 1 4 0v6l2-1 2 2 2-1 3 3-2 8H9l-6-7c-1-2 1-3 2-2l3 2"/>',
+  star:'<path d="m12 2 3 7 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1 3-7Z"/>',
+  trophy:'<path d="M7 3h10v7c0 7-10 7-10 0V3Zm0 2H3v4c0 3 4 4 5 4m9-8h4v4c0 3-4 4-5 4M12 15v6M7 22h10"/>',
+  retry:'<path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/>',
+  home:'<path d="m2 11 10-9 10 9M5 9v12h14V9M10 21v-7h4v7"/>',
+  expand:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
+  temple:'<path d="m2 8 10-6 10 6H2Zm3 3v8m7-8v8m7-8v8M2 22h20M3 19h18"/>',
+  bolt:'<path d="m14 2-10 12h7l-1 8 10-12h-7l1-8Z"/>',
+  road:'<path d="m8 2-5 20m13-20 5 20M12 3v3m0 4v4m0 4v3"/>',
+  lock:'<rect x="5" y="10" width="14" height="12" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4M12 15v3"/>'
+ };
+ function icon(name){return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">'+(paths[name]||paths.shield)+'</svg>';}
+ function hydrate(root=document){root.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=icon(el.dataset.icon));}
+ const $=id=>document.getElementById(id);
+ const storage={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);return true;}catch{return false;}},remove(k){try{localStorage.removeItem(k);}catch{}}};
+ const defaultProfile={version:1,faction:'legion',perk:'veterans',unlocked:0,medals:{},sound:true,reduced:window.matchMedia('(prefers-reduced-motion: reduce)').matches,haptics:false,tutorial:false};
+ function loadProfile(){try{const p=JSON.parse(storage.get('legion.profile.v1')||'null');return p&&p.version===1?{...defaultProfile,...p,faction:L.FACTIONS[p.faction]?p.faction:'legion',unlocked:L.clamp(Number(p.unlocked)||0,0,7),medals:p.medals||{}}:{...defaultProfile,medals:{}};}catch{return{...defaultProfile,medals:{}};}}
+ class AudioEngine{
+  constructor(){this.ctx=null;this.master=null;this.enabled=true;this.lastClash=0;this.lastMarch=0;this.lastBeat=0;}
+  unlock(){try{if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;this.ctx=new AC();this.master=this.ctx.createGain();this.master.gain.value=.22;this.master.connect(this.ctx.destination);const len=Math.floor(this.ctx.sampleRate*.2);this.noise=this.ctx.createBuffer(1,len,this.ctx.sampleRate);const data=this.noise.getChannelData(0);for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/len,2);}if(this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});}catch{this.ctx=null;}}
+  tone(f,d=.15,vol=.12,type='sine',delay=0){if(!this.enabled||!this.ctx||this.ctx.state!=='running')return;const t=this.ctx.currentTime+delay,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+d+.03);}
+  noiseHit(vol=.06){if(!this.enabled||!this.ctx||!this.noise||this.ctx.state!=='running')return;const s=this.ctx.createBufferSource(),g=this.ctx.createGain(),f=this.ctx.createBiquadFilter();s.buffer=this.noise;f.type='highpass';f.frequency.value=1800;g.gain.value=vol;s.connect(f);f.connect(g);g.connect(this.master);s.start();}
+  play(type){if(!this.enabled||!this.ctx)return;const now=this.ctx.currentTime;
+   if(type==='march'&&now-this.lastMarch>.09){this.lastMarch=now;this.tone(240,.07,.12);this.tone(360,.10,.08,'sine',.06);}
+   if(type==='clash'&&now-this.lastClash>.16){this.lastClash=now;this.noiseHit(.035);this.tone(100+Math.random()*100,.055,.055,'triangle');}
+   if(type==='capture'){this.tone(330,.2,.13);this.tone(440,.25,.13,'sine',.10);this.tone(660,.4,.12,'sine',.2);}
+   if(type==='charge'){[146.8,220,293.7].forEach((f,i)=>this.tone(f,.8,.07,'sawtooth',i*.04));}
+   if(type==='volley'){this.noiseHit(.10);this.tone(660,.3,.09,'triangle');}
+   if(type==='impact'){this.tone(72,.3,.15);this.noiseHit(.07);}
+   if(type==='muster'||type==='upgrade'){this.tone(294,.17,.12);this.tone(392,.26,.12,'sine',.08);}
+   if(type==='won'){[196,246.94,293.66,392,493.88,587.33].forEach((f,i)=>this.tone(f,.65,.14,'triangle',i*.15));}
+   if(type==='lost'){[220,196,146.83].forEach((f,i)=>this.tone(f,.6,.12,'triangle',i*.2));}
+   if(type==='click')this.tone(440,.045,.035);
+  }
+  beat(){if(!this.enabled||!this.ctx)return;const t=this.ctx.currentTime;if(t-this.lastBeat<2.5)return;this.lastBeat=t;this.tone(64,.2,.07);this.tone(82,.12,.035,'sine',.22);}
+ }
+ class UI{
+  constructor(actions,audio){this.actions=actions;this.audio=audio;this.profile=loadProfile();audio.enabled=this.profile.sound;this.homeOpen=true;this.modalOpen=false;this.tutorialOpen=false;this.selected=new Set();this.target=null;this.pointer=null;this.fraction=.75;this.speed=1;this.tutorialHint=false;this.toastTimer=null;this.lastHUD=0;this.battle=null;this.saved=storage.get('legion.battle.v1');this.bind();this.refreshHome();hydrate();this.emblem();}
+  saveProfile(){storage.set('legion.profile.v1',JSON.stringify(this.profile));}
+  emblem(){let leaves='';for(const s of[-1,1])for(let i=0;i<6;i++){const y=72-i*9,x=50+s*(29+Math.sin(i*.52)*7);leaves+=`<ellipse cx="${x}" cy="${y}" rx="3.1" ry="7" transform="rotate(${s*(38-i*5)} ${x} ${y})" fill="currentColor" stroke="none" opacity="${.5+i*.08}"/>`;}$('hero-emblem').innerHTML=`<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" aria-hidden="true"><path d="M47 88C10 80 4 44 26 20M53 88C90 80 96 44 74 20" stroke-width="1.1" opacity=".65"/>${leaves}<path d="M32 27h36v30c0 15-18 25-18 25S32 72 32 57V27Z" stroke-width="1.7"/><path d="m39 39 11 17 11-17M50 33v31M44 65h12" stroke-width="2.2"/><circle cx="50" cy="17" r="2" fill="currentColor" stroke="none"/><path d="M38 18h7m10 0h7" opacity=".6"/></svg>`;}
+  bind(){
+   document.querySelectorAll('[data-faction]').forEach(el=>el.addEventListener('click',()=>{this.profile.faction=el.dataset.faction;this.saveProfile();this.refreshHome();this.audio.play('click');}));
+   $('play-btn').onclick=()=>this.actions.startMission(Math.min(this.profile.unlocked,7));
+   $('resume-battle').onclick=()=>this.actions.resumeSaved();
+   $('campaign-btn').onclick=()=>this.showCampaign();$('skirmish-btn').onclick=()=>this.showSkirmish();$('how-btn').onclick=()=>this.showHelp();$('settings-open').onclick=()=>this.showSettings();
+   document.querySelectorAll('.sound-btn').forEach(el=>el.onclick=()=>{this.audio.unlock();this.profile.sound=!this.profile.sound;this.audio.enabled=this.profile.sound;this.saveProfile();this.refreshHome();});
+   $('pause-btn').onclick=()=>this.showPause();$('speed-btn').onclick=()=>{this.speed=this.speed===1?1.5:this.speed===1.5?2:1;$('speed-btn').textContent=this.speed+'×';this.toast(this.speed+'× battle speed');};
+   document.querySelectorAll('[data-fraction]').forEach(el=>el.onclick=()=>{this.fraction=Number(el.dataset.fraction);document.querySelectorAll('[data-fraction]').forEach(e=>e.classList.toggle('active',e===el));this.updateHUD(true);});
+   $('all-btn').onclick=()=>{if(!this.canInput())return;this.target=null;this.selected=new Set(this.battle.nodes.filter(n=>n.owner===0).map(n=>n.id));this.syncTarget();this.updateHUD(true);this.toast('All strongholds selected. Tap a destination.');};
+   document.querySelectorAll('[data-ability]').forEach(el=>el.onclick=()=>this.armAbility(el.dataset.ability));
+   $('cancel-target').onclick=()=>this.cancelTarget();
+   $('upgrade-btn').onclick=()=>{if(this.canInput()&&this.selected.size===1){const id=[...this.selected][0];if(this.battle.upgrade(id))this.updateHUD(true);else this.toast('Not enough command to fortify.');}};
+   $('tutorial-ok').onclick=()=>{this.tutorialOpen=false;this.tutorialHint=true;$('onboarding').classList.add('hidden');this.profile.tutorial=true;this.saveProfile();this.toast('Drag your citadel to the gray settlement.');};
+   $('modal-overlay').addEventListener('click',e=>{if(e.target===$('modal-overlay')&&this.allowModalClose)this.hideModal();});
+  }
+  canInput(){return this.battle&&this.battle.status==='playing'&&!this.homeOpen&&!this.modalOpen&&!this.tutorialOpen;}
+  refreshHome(){const p=this.profile;document.querySelectorAll('[data-faction]').forEach(el=>el.classList.toggle('active',el.dataset.faction===p.faction));$('faction-bonus').textContent=L.FACTIONS[p.faction].bonus;$('play-label').textContent=this.saved?'START NEW CONQUEST':p.unlocked>0?'CONTINUE CONQUEST':'BEGIN CONQUEST';const stars=Object.values(p.medals).reduce((a,b)=>a+Number(b),0),rank=stars===0?'YOUR LEGEND STARTS HERE':stars<4?'CENTURION':stars<10?'COMMANDER':stars<18?'GENERAL':stars<24?'WARLORD':'IMPERATOR';$('rank-line').innerHTML=stars?rank+' · <span>'+stars+' / 24 ★</span>':rank;document.querySelectorAll('.sound-btn').forEach(el=>{el.innerHTML=icon(p.sound?'sound':'mute');el.setAttribute('aria-label',p.sound?'Mute sound':'Enable sound');});$('resume-battle').classList.toggle('hidden',!this.saved);}
+  begin(b,restored=false){this.battle=b;this.homeOpen=false;this.modalOpen=false;this.tutorialOpen=false;this.target=null;this.selected.clear();this.pointer=null;this.speed=1;this.tutorialHint=false;$('home').classList.add('hidden');$('modal-overlay').classList.add('hidden');$('onboarding').classList.add('hidden');$('speed-btn').textContent='1×';this.syncTarget();this.updateHUD(true);this.audio.unlock();this.audio.play('charge');
+   $('mission-title').textContent=b.mission.name;$('mission-kicker').textContent=b.opts.mode==='campaign'?'CAMPAIGN · '+(b.opts.index+1)+' / 8':b.opts.sandbox?'SANDBOX · FREE ABILITIES':'SKIRMISH · '+(b.opts.difficultyName||'TACTICAL');$('map-caption').textContent=b.mission.region.toLowerCase();$('objective').textContent='Capture every rival stronghold';
+   if(!restored&&!this.profile.tutorial){this.tutorialOpen=true;$('onboarding').classList.remove('hidden');}
+  }
+  goHome(){this.actions.saveBattle();this.saved=storage.get('legion.battle.v1');this.homeOpen=true;this.tutorialOpen=false;this.selected.clear();this.cancelTarget();this.hideModal();$('home').classList.remove('hidden');$('onboarding').classList.add('hidden');this.refreshHome();}
+  modal(html,closable=true){this.modalOpen=true;this.allowModalClose=closable;this.pointer=null;$('modal').innerHTML=html;$('modal-overlay').classList.remove('hidden');hydrate($('modal'));const close=$('modal').querySelector('[data-close]');if(close)close.onclick=()=>this.hideModal();}
+  hideModal(){this.modalOpen=false;$('modal-overlay').classList.add('hidden');}
+  header(kicker){return '<div class="modal-top"><span class="caps">'+kicker+'</span><button class="square" data-close aria-label="Close" data-icon="close"></button></div>';}
+  showCampaign(){this.modal(this.header('THE CONQUEST')+'<h2>One empire at a time.</h2><p>Win to unlock the next battlefield. Earn medals for speed and keeping your soldiers alive.</p><div class="campaign-list">'+L.MISSIONS.map((m,i)=>'<button class="mission-card '+(i<=this.profile.unlocked?'available':'')+'" data-mission="'+i+'" '+(i>this.profile.unlocked?'disabled':'')+'><span class="num">'+String(i+1).padStart(2,'0')+'</span><span><strong>'+m.name+'</strong><small>'+m.region+'</small></span><span class="stars">'+(this.profile.medals[i]?'★'.repeat(this.profile.medals[i]):i>this.profile.unlocked?icon('lock'):'›')+'</span></button>').join('')+'</div>');document.querySelectorAll('[data-mission]').forEach(el=>el.onclick=()=>this.actions.startMission(Number(el.dataset.mission)));}
+  showSkirmish(){let difficulty=1,sandbox=false;this.modal(this.header('QUICK BATTLE')+'<h2>A new field. A new fight.</h2><p>A fresh battlefield with your chosen standard. No unlocks required.</p><div class="difficulty"><button data-diff="0.65">Relaxed</button><button data-diff="1" class="active">Tactical</button><button data-diff="1.45">Brutal</button></div><div class="settings-row"><span>Sandbox: free abilities</span><button class="toggle" id="sandbox-toggle" aria-label="Toggle free abilities" aria-pressed="false"></button></div><p style="font-size:10px;margin-top:12px">Sandbox removes command costs and cooldowns. Campaign medals are unaffected.</p><button class="primary" id="skirmish-start">'+icon('swords')+' TAKE THE FIELD</button>');document.querySelectorAll('[data-diff]').forEach(el=>el.onclick=()=>{difficulty=Number(el.dataset.diff);document.querySelectorAll('[data-diff]').forEach(e=>e.classList.toggle('active',e===el));});$('sandbox-toggle').onclick=()=>{sandbox=!sandbox;$('sandbox-toggle').classList.toggle('on',sandbox);$('sandbox-toggle').setAttribute('aria-pressed',String(sandbox));};$('skirmish-start').onclick=()=>this.actions.startSkirmish(difficulty,sandbox);}
+  showHelp(){this.modal(this.header('FIELD MANUAL')+'<h2>Command with a finger.</h2><div class="how-graphic"><svg viewBox="0 0 320 80" aria-hidden="true"><circle cx="52" cy="40" r="26" fill="#1d5845" stroke="#87e9c7"/><text x="52" y="46" text-anchor="middle" fill="#eaf3d8" font-size="20" font-family="Georgia">80</text><path d="M92 40H232m-9-8 9 8-9 8" fill="none" stroke="#e7bf75" stroke-width="2" stroke-dasharray="5 4"/><circle cx="267" cy="40" r="26" fill="#605e42" stroke="#ded0a0"/><text x="267" y="46" text-anchor="middle" fill="#eaf3d8" font-size="20" font-family="Georgia">15</text></svg></div>'+[
+   ['hand','Drag to attack','Drag from your teal stronghold to another one. You can also tap your stronghold, then tap the destination. Use All to command every stronghold.'],
+   ['flag','Grow your empire','Owned strongholds recruit automatically. Numbers are soldiers. Routes stop at the first hostile or neutral fort. Keep some troops home to defend.'],
+   ['horse','Use different troops','Citadels and settlements train shield infantry. Stables train fast cavalry. Archery camps train archers. Cavalry beats archers; infantry beats cavalry; archers beat infantry in field battles.'],
+   ['bolt','Turn the tide','Arrow rain damages a target area. War cry boosts your armies for 8 seconds. Rally adds 36 soldiers to your fort. Command refills; sanctuaries refill it faster.'],
+   ['shield','Fortify and win','Select one of your forts, then Fortify to improve recruitment, capacity, and defense. Defeat all rival forts and armies. At 6 minutes, most forts wins, with soldiers as a tiebreaker.']
+  ].map(([i,t,p])=>'<div class="how-row">'+icon(i)+'<div><b>'+t+'</b><p>'+p+'</p></div></div>').join('')+'<p style="font-size:10px;margin-top:14px">Desktop: drag or click. A selects all. 1, 2, 3 use abilities. Space pauses. Battles pause when you leave the tab. Progress saves in this browser when storage is available.</p><button class="primary" id="help-close">READY TO COMMAND '+icon('arrow')+'</button>');$('help-close').onclick=()=>this.hideModal();}
+  showSettings(){this.modal(this.header('SETTINGS')+'<h2>Your battlefield.</h2>'+[['sound','Sound effects'],['reduced','Reduced effects'],['haptics','Haptics, when supported']].map(([k,n])=>'<div class="settings-row"><span>'+n+'</span><button class="toggle '+(this.profile[k]?'on':'')+'" data-setting="'+k+'" aria-label="Toggle '+n+'" aria-pressed="'+!!this.profile[k]+'"></button></div>').join('')+'<p style="margin-top:16px">Your faction, medals, and current battle are saved on this device when browser storage is available. This is an original, stylized ancient-war game, not a historical simulation.</p><button class="secondary" id="fullscreen-btn" style="width:100%">'+icon('expand')+' Full screen, when supported</button>');document.querySelectorAll('[data-setting]').forEach(el=>el.onclick=()=>{const k=el.dataset.setting;this.profile[k]=!this.profile[k];el.classList.toggle('on',this.profile[k]);el.setAttribute('aria-pressed',String(this.profile[k]));this.audio.enabled=this.profile.sound;this.audio.unlock();this.saveProfile();this.refreshHome();});$('fullscreen-btn').onclick=()=>{const app=$('app');if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});else if(app.requestFullscreen)app.requestFullscreen().catch(()=>{});else {$('fullscreen-btn').textContent='This browser uses its own full-screen controls.';}};}
+  showPause(){if(this.homeOpen||this.battle?.status!=='playing')return;this.actions.saveBattle();this.modal(this.header('BATTLE PAUSED')+'<h2>Hold the line.</h2><p>'+this.battle.mission.name+' · '+this.formatTime(this.battle.time)+'</p><div class="pause-buttons"><button class="primary" id="unpause">'+icon('play')+' RESUME BATTLE</button><button class="secondary" id="pause-help">'+icon('map')+' Field manual</button><button class="secondary" id="pause-settings">'+icon('settings')+' Settings</button><button class="secondary" id="restart">'+icon('retry')+' Restart this battle</button><button class="secondary" id="back-home">'+icon('home')+' Save & return to menu</button></div>');$('unpause').onclick=()=>this.hideModal();$('restart').onclick=()=>this.actions.restart();$('back-home').onclick=()=>this.goHome();$('pause-help').onclick=()=>this.showHelp();$('pause-settings').onclick=()=>this.showSettings();}
+  armAbility(key){if(!this.canInput())return;if(this.target===key){this.cancelTarget();return;}if(!this.battle.abilityReady(key)){const cd=this.battle.cooldowns[key];this.toast(cd>0?'Ready in '+Math.ceil(cd)+' seconds.':'Need '+L.ABILITIES[key].cost+' command. It refills automatically.');return;}
+   this.audio.unlock();if(key==='charge'){this.battle.ability(key);this.toast('WAR CRY · faster marching, stronger attacks');this.cancelTarget();this.updateHUD(true);return;}
+   this.target=key;this.pointer=null;this.selected.clear();this.syncTarget();this.updateHUD(true);
+  }
+  cancelTarget(){this.target=null;this.pointer=null;this.syncTarget();}
+  syncTarget(){$('targeting').classList.toggle('hidden',!this.target);$('target-label').textContent=this.target==='volley'?'Tap where the arrows should fall':'Tap your stronghold to rally';document.querySelectorAll('[data-ability]').forEach(el=>el.classList.toggle('armed',el.dataset.ability===this.target));}
+  castAt(pos,node){if(!this.target)return false;const key=this.target;if(key==='muster'&&(!node||node.owner!==0)){this.toast('Rally needs one of your teal strongholds.');return false;}const success=this.battle.ability(key,key==='muster'?{id:node.id}:pos);if(success){this.cancelTarget();this.updateHUD(true);}return success;}
+  command(target){if(!this.canInput()||!target)return;let sent=0,redirect=false;for(const id of this.selected){if(id===target.id)continue;const route=this.battle.route(id,target.id,0);if(route.length&&route[route.length-1]!==target.id)redirect=true;if(this.battle.send(id,target.id,this.fraction,0))sent++;}
+   if(sent){this.tutorialHint=false;this.selected.clear();this.pointer=null;this.audio.play('march');if(redirect)this.toast('Your armies will capture the first fort on the route.');this.updateHUD(true);}else if(this.selected.size)this.toast('Let your stronghold recruit a few more soldiers.');
+  }
+  toast(text,ms=2600){$('toast').textContent=text;$('toast').classList.add('show');clearTimeout(this.toastTimer);this.toastTimer=setTimeout(()=>$('toast').classList.remove('show'),ms);}
+  formatTime(t){t=Math.floor(t);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
+  updateHUD(force=false){if(!this.battle)return;const now=performance.now();if(!force&&now-this.lastHUD<100)return;this.lastHUD=now;const b=this.battle;
+   for(const id of this.selected)if(b.nodes[id]?.owner!==0)this.selected.delete(id);
+   const yours=Math.ceil(b.totals(0)),enemy=Math.ceil(b.nodes.reduce((s,n)=>s+(n.owner>0?n.count:0),0)+b.armies.reduce((s,a)=>s+(a.owner>0?a.count:0),0));$('your-army').textContent=yours;$('enemy-army').textContent=enemy;$('balance-fill').style.width=(yours/(yours+enemy||1)*100)+'%';$('fort-count').textContent=b.owned(0).length+' / '+b.nodes.length+' forts';$('timer').textContent=this.formatTime(b.time);$('energy-fill').style.width=b.energy+'%';$('energy-value').textContent=b.opts.sandbox?'∞':Math.floor(b.energy)+' / 100';
+   const selected=[...this.selected].map(id=>b.nodes[id]);$('all-btn').classList.toggle('active',selected.length>1&&selected.length===b.owned(0).length);
+   $('upgrade-btn').classList.toggle('hidden',selected.length!==1);
+   if(selected.length===1){const n=selected[0],count=Math.floor(n.count*this.fraction);$('selection-title').textContent=L.TYPES[n.type].name+' · '+L.TYPES[n.type].unit.toUpperCase();$('selection-sub').textContent='Send '+count+' soldiers · Level '+n.level;$('upgrade-btn').textContent=n.level>=3?'Max level':'Fortify ◆ '+(25+15*n.level);$('upgrade-btn').disabled=n.level>=3||(!b.opts.sandbox&&b.energy<25+15*n.level);}
+   else if(selected.length>1){$('selection-title').textContent=selected.length+' strongholds selected';$('selection-sub').textContent='Send '+selected.reduce((s,n)=>s+Math.floor(n.count*this.fraction),0)+' soldiers. Tap a destination.';}
+   else{$('selection-title').textContent=this.target?'Choose your target':b.chargeUntil>b.time?'War cry is active':'Drag to command';$('selection-sub').textContent=b.chargeUntil>b.time?Math.ceil(b.chargeUntil-b.time)+' seconds of boosted armies':'Teal is yours. Claim the map.';}
+   for(const key of Object.keys(L.ABILITIES)){const btn=$(key+'-btn'),cooldown=b.opts.sandbox?0:b.cooldowns[key];btn.classList.toggle('cooling',cooldown>0);btn.classList.toggle('unaffordable',!b.opts.sandbox&&b.energy<L.ABILITIES[key].cost&&cooldown<=0);btn.querySelector('.cooldown').textContent=Math.ceil(cooldown)+'s';btn.setAttribute('aria-disabled',String(!b.abilityReady(key)));}
+   if(b.assault){$('objective').textContent='FINAL PUSH · faster recruitment & combat';$('objective').classList.add('flash');}else $('objective').classList.remove('flash');
+  }
+  result(){const b=this.battle,win=b.status==='won';storage.remove('legion.battle.v1');this.saved=null;this.selected.clear();this.cancelTarget();let stars=win?1+(b.time<150?1:0)+(b.stats.lost<110?1:0):0;
+   if(win&&b.opts.mode==='campaign'){this.profile.medals[b.opts.index]=Math.max(this.profile.medals[b.opts.index]||0,stars);this.profile.unlocked=Math.min(7,Math.max(this.profile.unlocked,b.opts.index+1));this.saveProfile();}
+   this.refreshHome();this.audio.play(b.status);const allDone=win&&b.opts.mode==='campaign'&&b.opts.index===7;const title=allDone?'An empire is born.':win?'The field is yours.':'Your banner will rise.';const desc=win?(b.reason==='time'?'You held the strongest realm when the battle ended.':allDone?'Eight battlefields. One victorious standard. Your conquest is complete.':'Their standards fall. Your legend grows.'):(b.stats.abilities===0?'Use Arrow rain to break a defense, then send your army.':'Claim neutral forts early. Keep reserves, and reinforce a threatened flank.');
+   this.modal('<div class="result"><div class="result-emblem">'+icon(win?'trophy':'shield')+'</div><div class="caps">'+(win?'VICTORY':'BATTLE LOST')+'</div><h2>'+title+'</h2><p>'+desc+'</p>'+(win?'<div class="result-stars">'+'★'.repeat(stars)+'<span style="opacity:.18">'+'★'.repeat(3-stars)+'</span></div>':'')+'<div class="result-stats"><div><strong>'+this.formatTime(b.time)+'</strong><small>BATTLE TIME</small></div><div><strong>'+b.stats.captures+'</strong><small>FORTS TAKEN</small></div><div><strong>'+Math.floor(b.stats.kills)+'</strong><small>ENEMIES FELLED</small></div></div>'+(win?'<div class="perk-label">CHOOSE YOUR NEXT BATTLE ADVANTAGE</div><div class="perks">'+[['veterans','shield','Veterans','+14 soldiers'],['command','bolt','War chest','+20 command'],['roads','road','Pathfinders','+12% speed']].map(([k,i,n,d])=>'<button class="perk '+(this.profile.perk===k?'active':'')+'" data-perk="'+k+'">'+icon(i)+'<b>'+n+'</b><small>'+d+'</small></button>').join('')+'</div>':'')+'<button class="primary" id="result-next">'+icon(win?'arrow':'retry')+(win&&b.opts.mode==='campaign'&&!allDone?' ON TO THE NEXT BATTLE':win?' FIGHT AGAIN':' RAISE YOUR STANDARD')+'</button><button class="secondary" id="result-home">'+icon('home')+' Return to the campaign</button></div>',false);
+   document.querySelectorAll('[data-perk]').forEach(el=>el.onclick=()=>{this.profile.perk=el.dataset.perk;this.saveProfile();document.querySelectorAll('[data-perk]').forEach(e=>e.classList.toggle('active',e===el));});
+   $('result-next').onclick=()=>{if(win&&b.opts.mode==='campaign'&&b.opts.index<7)this.actions.startMission(b.opts.index+1);else if(b.opts.mode==='skirmish')this.actions.startSkirmish(b.mission.difficulty,b.opts.sandbox);else this.actions.restart();};$('result-home').onclick=()=>this.goHome();
+  }
+ }
+ Object.assign(L,{UI,AudioEngine,icon,hydrate,storage});
+})(window.Legion);
