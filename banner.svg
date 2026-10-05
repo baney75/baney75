@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="240" viewBox="0 0 1200 240" role="img" aria-labelledby="t">
+  <title id="t">Donovan Baney. Biology and pre-med, Gannon University.</title>
+  <rect width="1200" height="240" fill="#f4f1e9"/>
+  <rect width="14" height="240" fill="#65283b"/>
+  <text x="72" y="128" fill="#65283b" font-family="Georgia, 'Times New Roman', serif" font-size="76" letter-spacing="-2">Donovan Baney</text>
+  <text x="74" y="176" fill="#756568" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24" letter-spacing="3">BIOLOGY &#183; PRE-MED &#183; GANNON UNIVERSITY</text>
+  <g fill="none" stroke="#65283b" stroke-width="6" stroke-linecap="square">
+    <path d="M1080 64v112M1052 96h56"/>
+  </g>
+</svg>
