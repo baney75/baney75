@@ -15,3 +15,9 @@ I'm a biology and pre-med student at Gannon University in Erie, Pennsylvania. I 
 - **[Stillport](https://github.com/baney75/stillport)**: lets AI agents search Apple Photos and chosen Google Photos. I used it to pick the photos on my site.
 
 [dbaney.com](https://dbaney.com) · [X](https://x.com/baney75) · [Email](mailto:donovan@dbaney.com) · [Psalm 27:1](https://www.biblegateway.com/passage/?search=Psalm+27%3A1&version=KJV)
+
+## Sponsors
+
+<!-- sponsors:start -->
+No sponsors yet. [Sponsor on GitHub](https://github.com/sponsors/baney75) and your name appears here automatically.
+<!-- sponsors:end -->
