@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-07",
+  "problems": [
+    "agents: CLAUDE.md is none, not an @AGENTS.md import",
+    "agents: no AGENTS.md",
+    "readme: README doesn't say how to run or check",
+    "readme: README has no title",
+    "readme: no LICENSE (public repo)"
+  ]
+}
