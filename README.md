@@ -5,7 +5,7 @@ I'm a biology and pre-med student at Gannon University in Erie, Pennsylvania. I 
 ### What I've built
 
 - **[GeneMachine](https://github.com/baney75/GeneMachine)**: explains established gene–medicine evidence, helps you write questions for your care team, and checks a consumer DNA file on your own device. [Open the app](https://genemachine.magnus-b37.workers.dev/)
-- **[Myelinate](https://github.com/baney75/myelinate)**: an AI tutoring skill that teaches through explanation, retrieval practice, and feedback, matched to your own course materials. [Try a sample lesson](https://baney75.github.io/myelinate/examples/lesson.html)
+- **[Myelinate](https://github.com/Students-of-Local/myelinate)**: an AI tutoring skill that teaches through explanation, retrieval practice, and feedback, matched to your own course materials. [Try a sample lesson](https://students-of-local.github.io/myelinate/examples/lesson.html)
 - **[Graze](https://github.com/baney75/graze)**: a one-tap orbit arcade game with a library of 37 courses (ten languages, the sciences and functional groups, medicine, logic, world history and the great books), recall-first cards, lessons, an endless learning Feed and spaced review. [Play Graze](https://baney75.github.io/graze/)
 - **[Helper](https://github.com/baney75/helper)**: helps adults 60 and older find official SNAP and energy-help pages and prepare the papers to bring. [Open Helper](https://baney75.github.io/helper/)
 - **[He Lives](https://github.com/baney75/helives)**: rotating King James Scripture with the words of Christ in red, illustrated scenes, and a visual meditation on Genesis. [Visit He Lives](https://helives.dev)
